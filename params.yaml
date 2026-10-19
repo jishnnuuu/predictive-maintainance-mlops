@@ -1,0 +1,38 @@
+seed: 42
+
+data:
+  telemetry_frequency: "1h"
+  prediction_horizon_hours: 24
+
+split:
+  train_end: "2015-08-01"
+  validation_end: "2015-10-01"
+
+features:
+  rolling_windows:
+    - 6
+    - 12
+    - 24
+    - 48
+
+  error_window_hours: 24
+
+models:
+  baseline:
+    type: "xgboost"
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+  sequence:
+    window_hours: 24
+    hidden_size: 64
+    num_layers: 2
+    dropout: 0.2
+
+training:
+  batch_size: 64
+  epochs: 10
+  learning_rate: 0.001
