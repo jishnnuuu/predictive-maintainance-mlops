@@ -1,1 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
 .predmaintainance/
+predmaintainance/
+predmaintainance/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Data
+data/raw/*
+data/processed/*
+data/features/*
+
+# Models / artifacts
+models/*
+*.pkl
+*.joblib
+*.pt
+*.pth
+
+# MLflow
+mlruns/
+
+# DVC
+.dvc/cache/
+
+# Logs
+*.log
+
+# Environment / secrets
+.env
+.env.*
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Ruff
+.ruff_cache/
