@@ -1,0 +1,5 @@
+outs:
+- md5: a33f17532d92a2f9950d9d63889fdf42
+  size: 89455286
+  hash: md5
+  path: machine_hourly.csv
