@@ -22,9 +22,11 @@ predmaintainance/
 data/raw/*
 data/processed/*
 data/features/*
+!data/**/*.dvc
 
 # Models / artifacts
 models/*
+!models/**/*.dvc
 *.pkl
 *.joblib
 *.pt
