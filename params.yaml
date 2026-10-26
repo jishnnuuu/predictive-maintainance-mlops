@@ -2,11 +2,13 @@ seed: 42
 
 data:
   telemetry_frequency: "1h"
+  history_hours: 48
   prediction_horizon_hours: 24
 
 split:
-  train_end: "2015-08-01"
-  validation_end: "2015-10-01"
+  train_end: "2015-08-31 23:00:00"
+  validation_end: "2015-10-31 23:00:00"
+  test_end: "2015-12-31 23:00:00"
 
 features:
   rolling_windows:
@@ -25,6 +27,8 @@ models:
     learning_rate: 0.05
     subsample: 0.8
     colsample_bytree: 0.8
+    random_state: 42
+    scale_pos_weight: 49.83
 
   sequence:
     window_hours: 24
@@ -36,3 +40,6 @@ training:
   batch_size: 64
   epochs: 10
   learning_rate: 0.001
+
+evaluation:
+  threshold: 0.95
