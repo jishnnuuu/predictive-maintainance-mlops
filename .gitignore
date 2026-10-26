@@ -2,10 +2,10 @@
 __pycache__/
 *.py[cod]
 *.so
+.pytest_cache/
 
 # Virtual environment
 .predmaintainance/
-predmaintainance/
 predmaintainance/
 
 # Jupyter
@@ -27,6 +27,10 @@ data/features/*
 # Models / artifacts
 models/*
 !models/**/*.dvc
+
+metrics/*
+!metrics/**/*.dvc
+
 *.pkl
 *.joblib
 *.pt
