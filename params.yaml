@@ -16,19 +16,19 @@ features:
     - 12
     - 24
     - 48
-
   error_window_hours: 24
 
 models:
   baseline:
     type: "xgboost"
-    n_estimators: 300
+    n_estimators: 400
     max_depth: 6
     learning_rate: 0.05
     subsample: 0.8
     colsample_bytree: 0.8
+    min_child_weight: 5
+    reg_lambda: 1.0
     random_state: 42
-    scale_pos_weight: 49.83
 
   sequence:
     window_hours: 24
@@ -40,6 +40,3 @@ training:
   batch_size: 64
   epochs: 10
   learning_rate: 0.001
-
-evaluation:
-  threshold: 0.95

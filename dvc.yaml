@@ -1,0 +1,46 @@
+stages:
+
+  prepare:
+    cmd: python -m src.data.prepare
+    deps:
+      - src/data/prepare.py
+      - data/raw
+    params:
+      - data.prediction_horizon_hours
+    outs:
+      - data/processed/machine_hourly.csv
+
+  features:
+    cmd: python -m src.features.build_features
+    deps:
+      - src/features/build_features.py
+      - data/processed/machine_hourly.csv
+    params:
+      - data.history_hours
+    outs:
+      - data/features/baseline_features.csv
+
+  train:
+    cmd: python -m src.models.train
+    deps:
+      - src/models/train.py
+      - data/features/baseline_features.csv
+    params:
+      - seed
+      - models.baseline
+    outs:
+      - models/xgboost_baseline.json
+      - models/xgboost_features.json
+
+  evaluate:
+    cmd: python -m src.models.evaluate
+    deps:
+      - src/models/evaluate.py
+      - data/features/baseline_features.csv
+      - models/xgboost_baseline.json
+      - models/xgboost_features.json
+    params:
+      - split
+    metrics:
+      - metrics/baseline_metrics.json:
+          cache: false

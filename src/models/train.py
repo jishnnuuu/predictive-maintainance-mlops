@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 
 import pandas as pd
+import yaml
 import xgboost as xgb
 from sklearn.metrics import (
     average_precision_score,
@@ -13,7 +14,6 @@ from sklearn.metrics import (
 
 FEATURE_PATH = Path("data/features/baseline_features.csv")
 MODEL_DIR = Path("models")
-METRICS_DIR = Path("metrics")
 
 TARGET = "failure_next_24h"
 
@@ -22,6 +22,11 @@ DROP_COLUMNS = [
     "machineID",
     TARGET,
 ]
+
+
+def load_params():
+    with open("params.yaml", "r", encoding="utf-8") as file:
+        return yaml.safe_load(file)
 
 
 def load_data():
@@ -119,40 +124,38 @@ def find_best_threshold(y_true, probabilities):
     return best_threshold
 
 
-def train_model(X_train, y_train):
+def train_model(X_train, y_train, params):
     positives = y_train.sum()
     negatives = len(y_train) - positives
 
-    scale_pos_weight = (
-        negatives / positives
-    )
+    scale_pos_weight = negatives / positives
 
     print(
         f"Training positives: {positives}"
     )
-
     print(
         f"Training negatives: {negatives}"
     )
-
     print(
         f"scale_pos_weight: "
         f"{scale_pos_weight:.2f}"
     )
 
+    model_params = params["models"]["baseline"]
+
     model = xgb.XGBClassifier(
         objective="binary:logistic",
         eval_metric="aucpr",
-        n_estimators=400,
-        max_depth=6,
-        learning_rate=0.05,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        min_child_weight=5,
-        reg_lambda=1.0,
+        n_estimators=model_params["n_estimators"],
+        max_depth=model_params["max_depth"],
+        learning_rate=model_params["learning_rate"],
+        subsample=model_params["subsample"],
+        colsample_bytree=model_params["colsample_bytree"],
+        min_child_weight=model_params["min_child_weight"],
+        reg_lambda=model_params["reg_lambda"],
         scale_pos_weight=scale_pos_weight,
         tree_method="hist",
-        random_state=42,
+        random_state=model_params["random_state"],
         n_jobs=-1,
     )
 
@@ -162,7 +165,6 @@ def train_model(X_train, y_train):
     )
 
     return model
-
 
 def main():
     print("Loading feature dataset...")
@@ -211,10 +213,13 @@ def main():
     )
 
     print("\nTraining XGBoost...")
+    
+    params = load_params()
 
     model = train_model(
         X_train,
         y_train,
+        params
     )
 
     print("Training complete.")
@@ -300,42 +305,9 @@ def main():
             indent=2,
         )
 
-    # Save metrics.
-    METRICS_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    metrics = {
-        "validation": validation_metrics,
-        "test": test_metrics,
-        "split": {
-            "train_end": "2015-08-31",
-            "validation_start": "2015-09-01",
-            "validation_end": "2015-10-31",
-            "test_start": "2015-11-01",
-        },
-    }
-
-    metrics_path = (
-        METRICS_DIR / "baseline_metrics.json"
-    )
-
-    with open(
-        metrics_path,
-        "w",
-        encoding="utf-8",
-    ) as file:
-        json.dump(
-            metrics,
-            file,
-            indent=2,
-        )
-
     print("\nArtifacts created:")
     print(model_path)
     print(feature_path)
-    print(metrics_path)
 
 
 if __name__ == "__main__":

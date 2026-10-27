@@ -1,0 +1,104 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m src.data.prepare
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: 040cd62a760663489c13944b65fd7389.dir
+      size: 80402227
+      nfiles: 6
+    - path: src/data/prepare.py
+      hash: md5
+      md5: b37285814d272ffdf0ac42c9b4aea34b
+      size: 4407
+    params:
+      params.yaml:
+        data.prediction_horizon_hours: 24
+    outs:
+    - path: data/processed/machine_hourly.csv
+      hash: md5
+      md5: a33f17532d92a2f9950d9d63889fdf42
+      size: 89455286
+  features:
+    cmd: python -m src.features.build_features
+    deps:
+    - path: data/processed/machine_hourly.csv
+      hash: md5
+      md5: a33f17532d92a2f9950d9d63889fdf42
+      size: 89455286
+    - path: src/features/build_features.py
+      hash: md5
+      md5: f2fdd4b60740e8ab2f5d5a66902d732a
+      size: 7135
+    params:
+      params.yaml:
+        data.history_hours: 48
+    outs:
+    - path: data/features/baseline_features.csv
+      hash: md5
+      md5: 765abe5693719d5bc79a0c5248d685a6
+      size: 627526218
+  train:
+    cmd: python -m src.models.train
+    deps:
+    - path: data/features/baseline_features.csv
+      hash: md5
+      md5: 765abe5693719d5bc79a0c5248d685a6
+      size: 627526218
+    - path: src/models/train.py
+      hash: md5
+      md5: f71f77c895bae89d89382d3ee0409323
+      size: 6328
+    params:
+      params.yaml:
+        models.baseline:
+          type: xgboost
+          n_estimators: 400
+          max_depth: 6
+          learning_rate: 0.05
+          subsample: 0.8
+          colsample_bytree: 0.8
+          min_child_weight: 5
+          reg_lambda: 1.0
+          random_state: 42
+        seed: 42
+    outs:
+    - path: models/xgboost_baseline.json
+      hash: md5
+      md5: 7fcbbc34469ae0f73d3dd7c857e74d6d
+      size: 818494
+    - path: models/xgboost_features.json
+      hash: md5
+      md5: 43e096ec139a789cf3870b98a2db2d06
+      size: 972
+  evaluate:
+    cmd: python -m src.models.evaluate
+    deps:
+    - path: data/features/baseline_features.csv
+      hash: md5
+      md5: 765abe5693719d5bc79a0c5248d685a6
+      size: 627526218
+    - path: models/xgboost_baseline.json
+      hash: md5
+      md5: 7fcbbc34469ae0f73d3dd7c857e74d6d
+      size: 818494
+    - path: models/xgboost_features.json
+      hash: md5
+      md5: 43e096ec139a789cf3870b98a2db2d06
+      size: 972
+    - path: src/models/evaluate.py
+      hash: md5
+      md5: cff2a69b523fc9cc1506018f4368fb22
+      size: 4006
+    params:
+      params.yaml:
+        split:
+          train_end: '2015-08-31 23:00:00'
+          validation_end: '2015-10-31 23:00:00'
+          test_end: '2015-12-31 23:00:00'
+    outs:
+    - path: metrics/baseline_metrics.json
+      hash: md5
+      md5: f790471c3a3739a499a2d0367056a32f
+      size: 404
