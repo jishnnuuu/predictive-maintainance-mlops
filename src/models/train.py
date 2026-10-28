@@ -143,6 +143,29 @@ def train_model(X_train, y_train, params):
 
     model_params = params["models"]["baseline"]
 
+    required_params = [
+        "n_estimators",
+        "max_depth",
+        "learning_rate",
+        "subsample",
+        "colsample_bytree",
+        "min_child_weight",
+        "reg_lambda",
+        "random_state",
+    ]
+
+    missing_params = [
+        param
+        for param in required_params
+        if param not in model_params
+    ]
+
+    if missing_params:
+        raise ValueError(
+            "Missing XGBoost parameters in params.yaml: "
+            + ", ".join(missing_params)
+        )
+
     model = xgb.XGBClassifier(
         objective="binary:logistic",
         eval_metric="aucpr",
@@ -229,13 +252,6 @@ def main():
     val_probabilities = model.predict_proba(
         X_val
     )[:, 1]
-
-    validation_pr_auc = (
-        average_precision_score(
-            y_val,
-            val_probabilities,
-        )
-    )
 
     threshold = find_best_threshold(
         y_val,
