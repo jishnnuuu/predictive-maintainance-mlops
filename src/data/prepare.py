@@ -8,18 +8,27 @@ PROCESSED_DIR = Path("data/processed")
 
 
 def load_data():
-    telemetry = pd.read_csv(RAW_DIR / "PdM_telemetry.csv")
-    errors = pd.read_csv(RAW_DIR / "PdM_errors.csv")
-    maint = pd.read_csv(RAW_DIR / "PdM_maint.csv")
-    failures = pd.read_csv(RAW_DIR / "PdM_failures.csv")
-    machines = pd.read_csv(RAW_DIR / "PdM_machines.csv")
+    telemetry = pd.read_csv(
+        RAW_DIR / "PdM_telemetry.csv"
+    )
 
-    telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
-    errors["datetime"] = pd.to_datetime(errors["datetime"])
-    maint["datetime"] = pd.to_datetime(maint["datetime"])
-    failures["datetime"] = pd.to_datetime(failures["datetime"])
+    failures = pd.read_csv(
+        RAW_DIR / "PdM_failures.csv"
+    )
 
-    return telemetry, errors, maint, failures, machines
+    machines = pd.read_csv(
+        RAW_DIR / "PdM_machines.csv"
+    )
+
+    telemetry["datetime"] = pd.to_datetime(
+        telemetry["datetime"]
+    )
+
+    failures["datetime"] = pd.to_datetime(
+        failures["datetime"]
+    )
+
+    return telemetry, failures, machines
 
 
 def create_failure_label(telemetry, failures):
@@ -89,38 +98,150 @@ def add_machine_metadata(telemetry, machines):
 
 def validate_labels(data, failures):
     """
-    Verify that every positive label really has a failure
-    within the next 24 hours.
+    Independently verify that every positive label has
+    a failure strictly after the prediction timestamp
+    and within the next 24 hours.
     """
 
     print("\nValidating labels...")
+
+    failures_for_merge = (
+        failures[
+            ["machineID", "datetime"]
+        ]
+        .rename(
+            columns={
+                "datetime": "failure_datetime"
+            }
+        )
+        .sort_values(
+            ["failure_datetime", "machineID"]
+        )
+    )
 
     positive = data[
         data["failure_next_24h"] == 1
     ].copy()
 
-    failures = failures.sort_values(
-        ["machineID", "datetime"]
+    positive = positive.sort_values(
+        ["datetime", "machineID"]
     )
 
-    # Find the next failure for each positive prediction timestamp.
     next_failure = pd.merge_asof(
-        positive.sort_values("datetime"),
-        failures[
-            ["machineID", "datetime"]
-        ].sort_values("datetime"),
+        positive,
+        failures_for_merge,
         left_on="datetime",
-        right_on="datetime",
+        right_on="failure_datetime",
         by="machineID",
         direction="forward",
         allow_exact_matches=False,
     )
 
-    # The above merge has the same datetime column name on both sides,
-    # so use a differently named failure table for clarity.
+    time_to_failure = (
+        next_failure["failure_datetime"]
+        - next_failure["datetime"]
+    )
+
+    valid_positive = (
+        time_to_failure.notna()
+        & (time_to_failure > pd.Timedelta(0))
+        & (time_to_failure <= pd.Timedelta(hours=24))
+    )
+
+    print(
+        f"Positive labels: {len(positive):,}"
+    )
+
+    print(
+        f"Valid positive labels: "
+        f"{valid_positive.sum():,}"
+    )
+
+    print(
+        f"Invalid positive labels: "
+        f"{(~valid_positive).sum():,}"
+    )
+
+    if (~valid_positive).any():
+        print("\nInvalid positive examples:")
+        print(
+            next_failure.loc[
+                ~valid_positive,
+                [
+                    "machineID",
+                    "datetime",
+                    "failure_datetime",
+                ],
+            ]
+            .head(20)
+            .to_string(index=False)
+        )
+
+    # Also check negative labels.
+    negative = data[
+        data["failure_next_24h"] == 0
+    ].copy()
+
+    negative = negative.sort_values(
+        ["datetime", "machineID"]
+    )
+
+    next_negative_failure = pd.merge_asof(
+        negative,
+        failures_for_merge,
+        left_on="datetime",
+        right_on="failure_datetime",
+        by="machineID",
+        direction="forward",
+        allow_exact_matches=False,
+    )
+
+    negative_time_to_failure = (
+        next_negative_failure["failure_datetime"]
+        - next_negative_failure["datetime"]
+    )
+
+    invalid_negative = (
+        negative_time_to_failure.notna()
+        & (
+            negative_time_to_failure
+            <= pd.Timedelta(hours=24)
+        )
+    )
+
+    print(
+        f"\nNegative labels: {len(negative):,}"
+    )
+
+    print(
+        f"Invalid negative labels: "
+        f"{invalid_negative.sum():,}"
+    )
+
+    if invalid_negative.any():
+        print("\nInvalid negative examples:")
+        print(
+            next_negative_failure.loc[
+                invalid_negative,
+                [
+                    "machineID",
+                    "datetime",
+                    "failure_datetime",
+                ],
+            ]
+            .head(20)
+            .to_string(index=False)
+        )
+
+    print("\nLabel validation complete.")
+
+    return (
+        (~valid_positive).sum() == 0
+        and invalid_negative.sum() == 0
+    )
 
 def main():
-    telemetry, errors, maint, failures, machines = load_data()
+    telemetry, failures, machines = load_data()
 
     print("Creating failure labels...")
 
@@ -134,6 +255,11 @@ def main():
     data = add_machine_metadata(
         data,
         machines,
+    )
+    
+    validate_labels(
+        data,
+        failures,
     )
 
     data = data.sort_values(
