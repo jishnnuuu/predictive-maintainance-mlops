@@ -10,8 +10,8 @@ stages:
       nfiles: 6
     - path: src/data/prepare.py
       hash: md5
-      md5: b37285814d272ffdf0ac42c9b4aea34b
-      size: 4407
+      md5: c37bc828e712d1b56b9f46afb85c64c9
+      size: 6680
     params:
       params.yaml:
         data.prediction_horizon_hours: 24
@@ -48,26 +48,26 @@ stages:
       size: 627526218
     - path: src/models/train.py
       hash: md5
-      md5: f71f77c895bae89d89382d3ee0409323
-      size: 6328
+      md5: 9ad2fc068db8b392f38943a44c7d2c44
+      size: 6702
     params:
       params.yaml:
         models.baseline:
           type: xgboost
-          n_estimators: 400
+          n_estimators: 300
           max_depth: 6
           learning_rate: 0.05
+          min_child_weight: 1
+          reg_lambda: 1.0
           subsample: 0.8
           colsample_bytree: 0.8
-          min_child_weight: 5
-          reg_lambda: 1.0
           random_state: 42
         seed: 42
     outs:
     - path: models/xgboost_baseline.json
       hash: md5
-      md5: 7fcbbc34469ae0f73d3dd7c857e74d6d
-      size: 818494
+      md5: 44b6bbb8e1b908fe0edbdd9577aee8c0
+      size: 840533
     - path: models/xgboost_features.json
       hash: md5
       md5: 43e096ec139a789cf3870b98a2db2d06
@@ -81,8 +81,8 @@ stages:
       size: 627526218
     - path: models/xgboost_baseline.json
       hash: md5
-      md5: 7fcbbc34469ae0f73d3dd7c857e74d6d
-      size: 818494
+      md5: 44b6bbb8e1b908fe0edbdd9577aee8c0
+      size: 840533
     - path: models/xgboost_features.json
       hash: md5
       md5: 43e096ec139a789cf3870b98a2db2d06
@@ -100,5 +100,75 @@ stages:
     outs:
     - path: metrics/baseline_metrics.json
       hash: md5
-      md5: f790471c3a3739a499a2d0367056a32f
+      md5: fa9e5c269b46b4629f2ec9fd9aeab22b
       size: 404
+  train_lstm:
+    cmd: python -m src.models.train_lstm
+    deps:
+    - path: data/features/baseline_features.csv
+      hash: md5
+      md5: 765abe5693719d5bc79a0c5248d685a6
+      size: 627526218
+    - path: src/models/train_lstm.py
+      hash: md5
+      md5: a1bf21ed21590a4e0846d3a584959a0d
+      size: 22132
+    params:
+      params.yaml:
+        models.sequence:
+          window_hours: 24
+          hidden_size: 64
+          num_layers: 2
+          dropout: 0.2
+        seed: 42
+        training:
+          batch_size: 256
+          epochs: 10
+          learning_rate: 0.0001
+          early_stopping_patience: 3
+          gradient_clip: 1.0
+    outs:
+    - path: metrics/lstm_metrics.json
+      hash: md5
+      md5: 79209a06ec41578ab163fe6b1a172c68
+      size: 1886
+    - path: models/lstm_baseline.pt
+      hash: md5
+      md5: 5993d631f7603684defc35dff2b77334
+      size: 254092
+  train_transformer:
+    cmd: python -m src.models.train_transformer
+    deps:
+    - path: data/features/baseline_features.csv
+      hash: md5
+      md5: 765abe5693719d5bc79a0c5248d685a6
+      size: 627526218
+    - path: src/models/train_transformer.py
+      hash: md5
+      md5: 50aefaafefebc01ddbbfd360ad601651
+      size: 22957
+    params:
+      params.yaml:
+        models.transformer:
+          window_hours: 24
+          d_model: 64
+          nhead: 4
+          num_layers: 2
+          dim_feedforward: 128
+          dropout: 0.2
+        seed: 42
+        training:
+          batch_size: 256
+          epochs: 10
+          learning_rate: 0.0001
+          early_stopping_patience: 3
+          gradient_clip: 1.0
+    outs:
+    - path: metrics/transformer_metrics.json
+      hash: md5
+      md5: c177ff832ce195b6bd6f8342cbce98f6
+      size: 714
+    - path: models/transformer_baseline.pt
+      hash: md5
+      md5: bfbb1fed42801eeb82fff8c2c3a93f91
+      size: 297708

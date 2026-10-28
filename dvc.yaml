@@ -44,3 +44,33 @@ stages:
     metrics:
       - metrics/baseline_metrics.json:
           cache: false
+
+  train_lstm:
+    cmd: python -m src.models.train_lstm
+    deps:
+      - src/models/train_lstm.py
+      - data/features/baseline_features.csv
+    params:
+      - seed
+      - models.sequence
+      - training
+    outs:
+      - models/lstm_baseline.pt
+    metrics:
+      - metrics/lstm_metrics.json:
+          cache: false
+
+  train_transformer:
+    cmd: python -m src.models.train_transformer
+    deps:
+      - src/models/train_transformer.py
+      - data/features/baseline_features.csv
+    params:
+      - seed
+      - models.transformer
+      - training
+    outs:
+      - models/transformer_baseline.pt
+    metrics:
+      - metrics/transformer_metrics.json:
+          cache: false

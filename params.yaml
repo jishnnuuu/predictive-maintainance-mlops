@@ -25,10 +25,11 @@ models:
     n_estimators: 300
     max_depth: 6
     learning_rate: 0.05
+    min_child_weight: 1
+    reg_lambda: 1.0
     subsample: 0.8
     colsample_bytree: 0.8
     random_state: 42
-    scale_pos_weight: 49.83
 
   sequence:
     window_hours: 24
