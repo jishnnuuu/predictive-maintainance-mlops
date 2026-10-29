@@ -1,6 +1,9 @@
 from pathlib import Path
 import json
 
+import mlflow
+import mlflow.xgboost
+
 import pandas as pd
 import yaml
 import xgboost as xgb
@@ -238,6 +241,32 @@ def main():
     print("\nTraining XGBoost...")
     
     params = load_params()
+    
+    mlflow.set_experiment(
+        "predictive-maintenance"
+    )
+
+    mlflow.start_run(
+        run_name="xgboost-baseline"
+    )
+    
+    model_params = params["models"]["baseline"]
+    
+    # Compute scale_pos_weight beforehand so it can be logged properly
+    positives = y_train.sum()
+    negatives = len(y_train) - positives
+    scale_pos_weight = negatives / positives
+
+    mlflow.log_params({
+        "model_type": "xgboost",
+        "n_estimators": model_params["n_estimators"],
+        "max_depth": model_params["max_depth"],
+        "learning_rate": model_params["learning_rate"],
+        "min_child_weight": model_params["min_child_weight"],
+        "subsample": model_params["subsample"],
+        "colsample_bytree": model_params["colsample_bytree"],
+        "scale_pos_weight": scale_pos_weight,
+    })
 
     model = train_model(
         X_train,
@@ -263,6 +292,14 @@ def main():
         val_probabilities,
         threshold,
     )
+    
+    mlflow.log_metrics({
+        "validation_pr_auc": validation_metrics["pr_auc"],
+        "validation_precision": validation_metrics["precision"],
+        "validation_recall": validation_metrics["recall"],
+        "validation_f1": validation_metrics["f1"],
+        "validation_threshold": validation_metrics["threshold"],
+    })
 
     print("\nValidation results:")
     for key, value in validation_metrics.items():
@@ -283,6 +320,14 @@ def main():
         test_probabilities,
         threshold,
     )
+    
+    mlflow.log_metrics({
+        "test_pr_auc": test_metrics["pr_auc"],
+        "test_precision": test_metrics["precision"],
+        "test_recall": test_metrics["recall"],
+        "test_f1": test_metrics["f1"],
+        "test_threshold": test_metrics["threshold"],
+    })
 
     print("\nTest results:")
     for key, value in test_metrics.items():
@@ -301,11 +346,15 @@ def main():
     model_path = (
         MODEL_DIR / "xgboost_baseline.json"
     )
-
     model.save_model(model_path)
+    
+    mlflow.xgboost.log_model(
+        model,
+        artifact_path="xgboost_model",
+        input_example=X_train.head(5),
+    )
 
-    # Save feature names separately so serving
-    # can enforce the exact training schema later.
+    # 1. Save feature names FIRST before logging the artifact
     feature_path = (
         MODEL_DIR / "xgboost_features.json"
     )
@@ -320,6 +369,21 @@ def main():
             file,
             indent=2,
         )
+
+    # 2. Log artifacts AFTER they are successfully created
+    mlflow.log_artifact(
+        str(feature_path)
+    )
+    
+    # NOTE: If you need to log baseline_metrics.json, make sure you save it first!
+    # Example:
+    # metrics_path = Path("metrics/baseline_metrics.json")
+    # metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    # with open(metrics_path, "w", encoding="utf-8") as f:
+    #     json.dump({**validation_metrics, **test_metrics}, f, indent=2)
+    # mlflow.log_artifact(str(metrics_path))
+    
+    mlflow.end_run()
 
     print("\nArtifacts created:")
     print(model_path)
