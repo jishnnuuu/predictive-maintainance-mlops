@@ -37,7 +37,7 @@ The dataset contains:
 - Prometheus
 - Grafana
 
-## Group Members
+## PE MidTerm
 
 ## Development
 
