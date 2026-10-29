@@ -31,7 +31,7 @@ The dataset contains:
 - DVC
 - MLflow
 - Docker
-- GitHub Actions
+- GitHub Actions / Jenkins
 - Kubernetes
 - FastAPI
 - Prometheus
