@@ -3,6 +3,8 @@ import copy
 import json
 import random
 
+import mlflow
+
 import numpy as np
 import pandas as pd
 import torch
@@ -124,6 +126,51 @@ def prepare_features(df):
     y = df[TARGET]
 
     return X, y
+
+
+def log_lstm_to_mlflow():
+    with open("metrics/lstm_metrics.json", encoding="utf-8") as f:
+        metrics = json.load(f)
+
+    params = load_params()
+    model_params = params["models"]["sequence"]
+    training_params = params["training"]
+
+    mlflow.set_experiment("predictive-maintenance")
+
+    with mlflow.start_run(run_name="lstm-baseline"):
+        mlflow.log_params({
+            "model_type": "lstm",
+            "window_hours": model_params["window_hours"],
+            "hidden_size": model_params["hidden_size"],
+            "num_layers": model_params["num_layers"],
+            "dropout": model_params["dropout"],
+            "batch_size": training_params["batch_size"],
+            "learning_rate": training_params["learning_rate"],
+            "seed": params["seed"],
+        })
+
+        for split in ("validation", "test"):
+            for metric, value in metrics[split].items():
+                mlflow.log_metric(f"{split}_{metric}", float(value))
+
+        mlflow.log_metric(
+            "best_validation_pr_auc",
+            float(metrics["best_validation_pr_auc"]),
+        )
+
+        for epoch in metrics["history"]:
+            mlflow.log_metric(
+                "epoch_loss", float(epoch["loss"]), step=epoch["epoch"]
+            )
+            mlflow.log_metric(
+                "epoch_validation_pr_auc",
+                float(epoch["validation_pr_auc"]),
+                step=epoch["epoch"],
+            )
+
+        mlflow.log_artifact("models/lstm_baseline.pt")
+        mlflow.log_artifact("metrics/lstm_metrics.json")
 
 
 # ============================================================
@@ -1082,6 +1129,8 @@ def main():
     print(
         metrics_path
     )
+    
+    log_lstm_to_mlflow()
 
 
 if __name__ == "__main__":

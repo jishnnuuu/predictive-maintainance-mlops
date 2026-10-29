@@ -3,6 +3,8 @@ import json
 import math
 import random
 
+import mlflow
+
 import numpy as np
 import pandas as pd
 import torch
@@ -114,6 +116,36 @@ def prepare_features(df):
 
     return X, y
 
+def log_transformer_to_mlflow():
+    with open("metrics/transformer_metrics.json", encoding="utf-8") as f:
+        metrics = json.load(f)
+
+    params = load_params()
+    model_params = params["models"]["transformer"]
+    training_params = params["training"]
+
+    mlflow.set_experiment("predictive-maintenance")
+
+    with mlflow.start_run(run_name="transformer-baseline"):
+        mlflow.log_params({
+            "model_type": "transformer",
+            "window_hours": model_params["window_hours"],
+            "d_model": model_params["d_model"],
+            "nhead": model_params["nhead"],
+            "num_layers": model_params["num_layers"],
+            "dim_feedforward": model_params["dim_feedforward"],
+            "dropout": model_params["dropout"],
+            "batch_size": training_params["batch_size"],
+            "learning_rate": training_params["learning_rate"],
+            "seed": params["seed"],
+        })
+
+        for split in ("validation", "test"):
+            for metric, value in metrics[split].items():
+                mlflow.log_metric(f"{split}_{metric}", float(value))
+
+        mlflow.log_artifact("models/transformer_baseline.pt")
+        mlflow.log_artifact("metrics/transformer_metrics.json")
 
 # ============================================================
 # SEQUENCE DATASET
@@ -1161,6 +1193,8 @@ def main():
     print(model_path)
 
     print(metrics_path)
+    
+    log_transformer_to_mlflow()
 
 
 if __name__ == "__main__":
