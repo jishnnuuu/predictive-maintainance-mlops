@@ -1,0 +1,12 @@
+.git
+.predmaintainance
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ipynb_checkpoints
+mlruns
+.dvc/cache
+data/
+*.log
+.DS_Store
