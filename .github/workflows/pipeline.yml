@@ -131,7 +131,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: xgboost-model
-          path: models/
+          path: .
 
       - name: Build Docker image
         run: docker build -t predictive-maintenance-api:ci .
