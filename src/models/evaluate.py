@@ -50,18 +50,17 @@ def load_data():
 
 
 def split_data(df):
-    train = df[
-        df["datetime"] < "2015-09-01"
-    ]
+    import yaml
+    with open("params.yaml", "r", encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+    train_end = params["split"]["train_end"]
+    val_end = params["split"]["validation_end"]
 
+    train = df[df["datetime"] < train_end]
     validation = df[
-        (df["datetime"] >= "2015-09-01")
-        & (df["datetime"] < "2015-11-01")
+        (df["datetime"] >= train_end) & (df["datetime"] < val_end)
     ]
-
-    test = df[
-        df["datetime"] >= "2015-11-01"
-    ]
+    test = df[df["datetime"] >= val_end]
 
     return train, validation, test
 

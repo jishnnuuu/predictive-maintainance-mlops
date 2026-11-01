@@ -98,5 +98,6 @@
     "model_model2": 0.0,
     "model_model3": 1.0,
     "model_model4": 0.0
-  }
+  },
+  "threshold": 0.89
 }

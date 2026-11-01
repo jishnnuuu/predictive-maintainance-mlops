@@ -1,4 +1,3 @@
-
 {
   "id": null,
   "uid": "predictive-maintenance",
@@ -7,59 +6,190 @@
   "timezone": "browser",
   "schemaVersion": 39,
   "refresh": "5s",
-  "time": {
-    "from": "now-15m",
-    "to": "now"
-  },
+  "time": { "from": "now-30m", "to": "now" },
+
   "panels": [
+
+    {
+      "id": 100,
+      "title": "── API & TRAFFIC ──",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 0 },
+      "options": { "content": "## 🌐 API & Traffic", "mode": "markdown" }
+    },
+
     {
       "id": 1,
-      "title": "API Requests per Second",
+      "title": "Requests / sec",
+      "description": "Total HTTP request rate across all endpoints",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 2 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        }
+      },
       "targets": [
         {
-          "expr": "sum(rate(api_requests_total[1m]))",
-          "legendFormat": "Requests/sec",
+          "expr": "sum(rate(api_requests_total{endpoint=\"/predict\"}[1m]))",
+          "legendFormat": "/predict",
           "refId": "A"
+        },
+        {
+          "expr": "sum(rate(api_requests_total{endpoint=\"/health\"}[1m]))",
+          "legendFormat": "/health",
+          "refId": "B"
         }
       ]
     },
+
     {
       "id": 2,
-      "title": "Total Model Predictions",
+      "title": "Total Predictions",
+      "description": "Cumulative predictions since last restart",
       "type": "stat",
-      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": { "h": 7, "w": 4, "x": 8, "y": 2 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1000 },
+              { "color": "red", "value": 10000 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "targets": [
         {
           "expr": "sum(model_predictions_total)",
-          "legendFormat": "Predictions",
+          "legendFormat": "Total",
           "refId": "A"
         }
       ]
     },
+
     {
       "id": 3,
-      "title": "Prediction Distribution",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "title": "API Error Rate (%)",
+      "description": "Percentage of requests returning 4xx/5xx",
+      "type": "gauge",
+      "gridPos": { "h": 7, "w": 4, "x": 12, "y": 2 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
         {
-          "expr": "sum by (result) (model_predictions_total)",
-          "legendFormat": "{{result}}",
+          "expr": "100 * rate(api_errors_total[5m]) / (rate(api_requests_total[5m]) + 0.0001)",
+          "legendFormat": "Error %",
           "refId": "A"
         }
       ]
     },
+
     {
       "id": 4,
-      "title": "Average API Latency (seconds)",
+      "title": "Total Errors",
+      "type": "stat",
+      "gridPos": { "h": 7, "w": 4, "x": 16, "y": 2 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        { "expr": "api_errors_total", "legendFormat": "Errors", "refId": "A" }
+      ]
+    },
+
+    {
+      "id": 5,
+      "title": "HTTP Status Breakdown",
+      "description": "Requests split by status code",
+      "type": "piechart",
+      "gridPos": { "h": 7, "w": 4, "x": 20, "y": 2 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "pieType": "donut", "legendDisplayMode": "table", "placement": "bottom" },
+      "targets": [
+        {
+          "expr": "sum by (status) (increase(api_requests_total[30m]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "title": "API Latency — P50 / P95 / P99",
+      "description": "Request latency percentiles for /predict",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(api_request_latency_seconds_bucket{endpoint=\"/predict\"}[1m])) by (le))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket{endpoint=\"/predict\"}[1m])) by (le))",
+          "legendFormat": "P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(api_request_latency_seconds_bucket{endpoint=\"/predict\"}[1m])) by (le))",
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "title": "Average Latency by Endpoint",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2 } }
+      },
       "targets": [
         {
           "expr": "rate(api_request_latency_seconds_sum[1m]) / rate(api_request_latency_seconds_count[1m])",
@@ -68,26 +198,32 @@
         }
       ]
     },
+
+
     {
-      "id": 5,
-      "title": "API Errors",
-      "type": "stat",
-      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [
-        {
-          "expr": "api_errors_total",
-          "legendFormat": "Errors",
-          "refId": "A"
-        }
-      ]
+      "id": 200,
+      "title": "── ML MODEL ──",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 16 },
+      "options": { "content": "## 🤖 ML Model Behaviour", "mode": "markdown" }
     },
+
     {
-      "id": 6,
-      "title": "Prediction Outcomes",
-      "type": "piechart",
-      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "id": 8,
+      "title": "Failure Predictions vs Normal",
+      "description": "Cumulative failure vs no_failure predictions",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "failure" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "no_failure" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      },
       "targets": [
         {
           "expr": "sum by (result) (model_predictions_total)",
@@ -95,6 +231,397 @@
           "refId": "A"
         }
       ]
+    },
+
+    {
+      "id": 9,
+      "title": "Prediction Outcome Distribution",
+      "type": "piechart",
+      "gridPos": { "h": 7, "w": 4, "x": 8, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "pieType": "pie", "legendDisplayMode": "table", "placement": "right" },
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "failure" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "no_failure" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum by (result) (model_predictions_total)",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "title": "Failure Rate (rolling 100 predictions)",
+      "description": "Live gauge: fraction of last 100 predictions flagged as failure",
+      "type": "gauge",
+      "gridPos": { "h": 7, "w": 4, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.15 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "model_failure_rate_current",
+          "legendFormat": "Failure Rate",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 11,
+      "title": "Failure Prediction Rate / min",
+      "description": "How many failures are being predicted per minute — drift detection",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 20 },
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(model_predictions_total{result=\"failure\"}[1m]) * 60",
+          "legendFormat": "failures/min",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 12,
+      "title": "Prediction Probability Distribution (Histogram)",
+      "description": "How the model's confidence scores distribute — should be bimodal (near 0 and near 1)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 1, "fillOpacity": 25 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(model_prediction_probability_bucket[5m])) by (le)",
+          "legendFormat": "p ≤ {{le}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 13,
+      "title": "Requests vs Predictions Rate",
+      "description": "Should be 1:1 — divergence means errors or non-predict traffic spike",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(api_requests_total{endpoint=\"/predict\"}[1m]))",
+          "legendFormat": "Requests/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(model_predictions_total[1m]))",
+          "legendFormat": "Predictions/sec",
+          "refId": "B"
+        }
+      ]
+    },
+
+
+    {
+      "id": 300,
+      "title": "── KUBERNETES ──",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 32 },
+      "options": {
+        "content": "## ☸️ Kubernetes — Pod Health & Resource Usage\n> _Metrics from `kube-state-metrics` and `cAdvisor`. Requires Prometheus with Kubernetes scrape configs. Panels show \"No data\" in local Docker Compose mode — deploy to minikube/kind to see live data._",
+        "mode": "markdown"
+      }
+    },
+
+    {
+      "id": 14,
+      "title": "Running Pods",
+      "description": "Current pod count for the API deployment",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 2 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "count(kube_pod_status_phase{namespace=\"default\", pod=~\"predictive-maintenance.*\", phase=\"Running\"})",
+          "legendFormat": "Running Pods",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 15,
+      "title": "Pod Restarts (total)",
+      "description": "Cumulative container restarts — non-zero signals instability",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"default\", pod=~\"predictive-maintenance.*\"})",
+          "legendFormat": "Restarts",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 16,
+      "title": "Pod Phase",
+      "description": "Pod phase counts by status (Running, Pending, Failed)",
+      "type": "piechart",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "pieType": "donut" },
+      "targets": [
+        {
+          "expr": "sum by (phase) (kube_pod_status_phase{namespace=\"default\", pod=~\"predictive-maintenance.*\"})",
+          "legendFormat": "{{phase}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 17,
+      "title": "Desired vs Ready Replicas",
+      "description": "HPA target vs actual ready pods — gap means scaling in progress or crash",
+      "type": "timeseries",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 } }
+      },
+      "targets": [
+        {
+          "expr": "kube_deployment_spec_replicas{namespace=\"default\", deployment=\"predictive-maintenance-api\"}",
+          "legendFormat": "Desired",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"default\", deployment=\"predictive-maintenance-api\"}",
+          "legendFormat": "Ready",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "id": 18,
+      "title": "CPU Usage — Per Pod",
+      "description": "CPU cores used per API pod (from cAdvisor)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 39 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"default\", pod=~\"predictive-maintenance.*\", container!=\"\", container!=\"POD\"}[1m]))",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 19,
+      "title": "Memory Usage — Per Pod",
+      "description": "Working set memory per API pod (from cAdvisor)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 39 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"default\", pod=~\"predictive-maintenance.*\", container!=\"\", container!=\"POD\"})",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 20,
+      "title": "CPU Throttling (%) — Per Pod",
+      "description": "% of time CPU was throttled — high values mean the pod needs more CPU limit",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 46 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "lineWidth": 2 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 20 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "100 * sum by (pod) (increase(container_cpu_cfs_throttled_periods_total{namespace=\"default\", pod=~\"predictive-maintenance.*\"}[1m])) / sum by (pod) (increase(container_cpu_cfs_periods_total{namespace=\"default\", pod=~\"predictive-maintenance.*\"}[1m]))",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 21,
+      "title": "Pod Restarts Over Time",
+      "description": "When restarts happened — useful for crash-loop debugging",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 46 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2 },
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"default\", pod=~\"predictive-maintenance.*\"}[5m])",
+          "legendFormat": "{{pod}} / {{container}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 22,
+      "title": "HPA: Current vs Min vs Max Replicas",
+      "description": "HPA scaling bounds — shows when autoscaling is active",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 53 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 } }
+      },
+      "targets": [
+        {
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"default\", horizontalpodautoscaler=\"predictive-maintenance-api-hpa\"}",
+          "legendFormat": "Current",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"default\", horizontalpodautoscaler=\"predictive-maintenance-api-hpa\"}",
+          "legendFormat": "Min",
+          "refId": "B"
+        },
+        {
+          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"default\", horizontalpodautoscaler=\"predictive-maintenance-api-hpa\"}",
+          "legendFormat": "Max",
+          "refId": "C"
+        }
+      ]
+    },
+
+    {
+      "id": 23,
+      "title": "Container Readiness & Liveness",
+      "description": "1 = ready/live, 0 = not — health probe status per container",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 53 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
+          "custom": { "lineWidth": 2 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "kube_pod_container_status_ready{namespace=\"default\", pod=~\"predictive-maintenance.*\"}",
+          "legendFormat": "ready: {{pod}}",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_pod_container_status_running{namespace=\"default\", pod=~\"predictive-maintenance.*\"}",
+          "legendFormat": "running: {{pod}}",
+          "refId": "B"
+        }
+      ]
     }
+
   ]
 }

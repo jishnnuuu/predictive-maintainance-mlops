@@ -91,20 +91,19 @@ def load_data():
 # Temporal Split
 # ============================================================
 
-def split_data(df):
+def split_data(df, params):
 
-    train = df[
-        df["datetime"] < "2015-09-01"
-    ].copy()
+    train_end = params["split"]["train_end"]
+    val_end = params["split"]["validation_end"]
+
+    train = df[df["datetime"] < train_end].copy()
 
     validation = df[
-        (df["datetime"] >= "2015-09-01")
-        & (df["datetime"] < "2015-11-01")
+        (df["datetime"] >= train_end)
+        & (df["datetime"] < val_end)
     ].copy()
 
-    test = df[
-        df["datetime"] >= "2015-11-01"
-    ].copy()
+    test = df[df["datetime"] >= val_end].copy()
 
     return (
         train,
@@ -513,7 +512,7 @@ def main():
     # --------------------------------------------------------
 
     train, validation, test = split_data(
-        df
+        df, params
     )
 
     print("\nSplit sizes:")
