@@ -1,11 +1,7 @@
 from pathlib import Path
 import json
 
-import mlflow
-import mlflow.xgboost
-
 import pandas as pd
-import yaml
 import xgboost as xgb
 from sklearn.metrics import (
     average_precision_score,
@@ -30,6 +26,8 @@ DROP_COLUMNS = [
 
 
 def load_params():
+    import yaml
+
     with open("params.yaml", "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
@@ -113,6 +111,9 @@ def train_model(X_train, y_train, params):
 
 
 def main():
+    import mlflow
+    import mlflow.xgboost
+
     print("Loading feature dataset...")
     params = load_params()
     df = load_data()
