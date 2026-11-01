@@ -14,8 +14,8 @@ RAW.mkdir(parents=True, exist_ok=True)
 
 # ── Parameters ───────────────────────────────────────────────
 N_MACHINES = 10
-HOURS = 24 * 30  # 30 days of hourly readings
-START = pd.Timestamp("2015-01-02 06:00:00")
+HOURS = 24 * 100  # 100 days of hourly readings
+START = pd.Timestamp("2015-08-01 00:00:00")
 
 # ── Telemetry ────────────────────────────────────────────────
 rows = []
