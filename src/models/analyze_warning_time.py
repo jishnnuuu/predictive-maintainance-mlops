@@ -1,14 +1,7 @@
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.metrics import (
-    average_precision_score,
-    precision_score,
-    recall_score,
-    f1_score,
-)
 
 
 FEATURE_PATH = Path(
@@ -311,7 +304,7 @@ def main():
     )
 
     print(
-        f"\nResults saved to:"
+        "\nResults saved to:"
     )
 
     print(

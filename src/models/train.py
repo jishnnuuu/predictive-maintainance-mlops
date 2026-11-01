@@ -122,7 +122,7 @@ def main():
 
     train, validation, test = split_data(df, params)
 
-    print(f"\nSplit sizes:")
+    print("\nSplit sizes:")
     print(f"  Train:      {len(train):,}")
     print(f"  Validation: {len(validation):,}")
     print(f"  Test:       {len(test):,}")
@@ -132,7 +132,7 @@ def main():
     X_test, y_test = prepare_xy(test)
 
     print(f"\nFeature count: {X_train.shape[1]}")
-    print(f"\nPositive rates:")
+    print("\nPositive rates:")
     print(f"  Train:      {y_train.mean():.4%}")
     print(f"  Validation: {y_val.mean():.4%}")
     print(f"  Test:       {y_test.mean():.4%}")
@@ -228,7 +228,7 @@ def main():
                 json.dump(schema, f, indent=2)
             print(f"\nUpdated {SCHEMA_PATH} with threshold={threshold}")
 
-    print(f"\nArtifacts created:")
+    print("\nArtifacts created:")
     print(f"  {model_path}")
     print(f"  {feature_path}")
     print(f"  {metrics_path}")
