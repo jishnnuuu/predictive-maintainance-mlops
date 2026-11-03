@@ -506,3 +506,6 @@ All parameters are in [`params.yaml`](params.yaml). Changing any value and runni
 | `training.epochs` | 10 | Deep model training budget |
 | `training.early_stopping_patience` | 3 | Stop if val PR-AUC doesn't improve |
 | `split.*` | 2015 date boundaries | Affects all train + evaluate stages |
+
+
+
