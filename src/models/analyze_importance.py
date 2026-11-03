@@ -1,6 +1,4 @@
 from pathlib import Path
-
-import json
 import pandas as pd
 import xgboost as xgb
 
@@ -142,7 +140,7 @@ def main():
     )
 
     print(
-        f"\nFeature importance saved to:"
+        "\nFeature importance saved to:"
     )
 
     print(

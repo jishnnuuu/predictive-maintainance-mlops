@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from prometheus_client import (
     Counter,
+    Gauge,
     Histogram,
     generate_latest,
     CONTENT_TYPE_LATEST,
@@ -32,6 +33,7 @@ with SCHEMA_PATH.open(encoding="utf-8") as file:
 
 FEATURE_COLUMNS = schema["feature_columns"]
 SAMPLE = schema["sample"]
+THRESHOLD = schema.get("threshold", 0.85)
 
 model = xgb.XGBClassifier()
 model.load_model(str(MODEL_PATH))
@@ -77,6 +79,19 @@ REQUEST_ERRORS = Counter(
     "api_errors_total",
     "Total failed API requests",
 )
+
+PREDICTION_PROBABILITY = Histogram(
+    "model_prediction_probability",
+    "Distribution of predicted failure probabilities",
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0],
+)
+
+FAILURE_RATE_GAUGE = Gauge(
+    "model_failure_rate_current",
+    "Rolling failure prediction rate (last 100 predictions)",
+)
+
+_recent_predictions: list = []
 
 
 # ==================================================
@@ -200,8 +215,7 @@ def predict(request: PredictionRequest):
             detail=str(exc),
         ) from exc
 
-    threshold = 0.85
-    predicted_failure = probability >= threshold
+    predicted_failure = probability >= THRESHOLD
 
     # Record prediction outcome.
     PREDICTION_COUNT.labels(
@@ -212,10 +226,21 @@ def predict(request: PredictionRequest):
         )
     ).inc()
 
+    # Record probability distribution.
+    PREDICTION_PROBABILITY.observe(probability)
+
+    # Update rolling failure rate gauge (last 100 predictions).
+    _recent_predictions.append(int(predicted_failure))
+    if len(_recent_predictions) > 100:
+        _recent_predictions.pop(0)
+    FAILURE_RATE_GAUGE.set(
+        sum(_recent_predictions) / len(_recent_predictions)
+    )
+
     return {
         "failure_probability": probability,
         "predicted_failure": predicted_failure,
-        "threshold": threshold,
+        "threshold": THRESHOLD,
     }
 
 

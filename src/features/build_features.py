@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pandas as pd
-import yaml
 
 
 PROCESSED_DIR = Path("data/processed")
@@ -17,6 +16,8 @@ SENSOR_COLUMNS = [
 
 
 def load_params():
+    import yaml
+
     with open("params.yaml", "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
