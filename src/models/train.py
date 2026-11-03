@@ -1,11 +1,7 @@
 from pathlib import Path
 import json
 
-import mlflow
-import mlflow.xgboost
-
 import pandas as pd
-import yaml
 import xgboost as xgb
 from sklearn.metrics import (
     average_precision_score,
@@ -30,6 +26,8 @@ DROP_COLUMNS = [
 
 
 def load_params():
+    import yaml
+
     with open("params.yaml", "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
@@ -113,6 +111,9 @@ def train_model(X_train, y_train, params):
 
 
 def main():
+    import mlflow
+    import mlflow.xgboost
+
     print("Loading feature dataset...")
     params = load_params()
     df = load_data()
@@ -122,7 +123,7 @@ def main():
 
     train, validation, test = split_data(df, params)
 
-    print(f"\nSplit sizes:")
+    print("\nSplit sizes:")
     print(f"  Train:      {len(train):,}")
     print(f"  Validation: {len(validation):,}")
     print(f"  Test:       {len(test):,}")
@@ -132,7 +133,7 @@ def main():
     X_test, y_test = prepare_xy(test)
 
     print(f"\nFeature count: {X_train.shape[1]}")
-    print(f"\nPositive rates:")
+    print("\nPositive rates:")
     print(f"  Train:      {y_train.mean():.4%}")
     print(f"  Validation: {y_val.mean():.4%}")
     print(f"  Test:       {y_test.mean():.4%}")
@@ -228,7 +229,7 @@ def main():
                 json.dump(schema, f, indent=2)
             print(f"\nUpdated {SCHEMA_PATH} with threshold={threshold}")
 
-    print(f"\nArtifacts created:")
+    print("\nArtifacts created:")
     print(f"  {model_path}")
     print(f"  {feature_path}")
     print(f"  {metrics_path}")

@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   # ──────────────────────────────────────────────────────────
   # 1. LINT
@@ -131,7 +134,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: xgboost-model
-          path: models/
+          path: .
 
       - name: Build Docker image
         run: docker build -t predictive-maintenance-api:ci .
